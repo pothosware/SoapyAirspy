@@ -28,7 +28,7 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
 {
     deviceId = -1;
 
-    sampleRate = 48000;
+    sampleRate = 3000000;
     centerFrequency = 0;
 
     numBuffers = DEFAULT_NUM_BUFFERS;
@@ -41,35 +41,59 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
     streamActive = false;
     sampleRateChanged.store(false);
     
+    dev = nullptr;
+    
     if (args.count("device_id") != 0)
     {
         try {
             deviceId = std::stoi(args.at("device_id"));
         } catch (const std::invalid_argument &) {
+            throw std::runtime_error("device_id invalid.");
         }
         
-        // int numDevices = dac.getDeviceCount();
+        std::vector<struct airspy_device *> allDevs;
         
-        // if (deviceId < 0 || deviceId >= numDevices)
-        // {
-        //     throw std::runtime_error(
-        //             "device_id out of range [0 .. " + std::to_string(numDevices) + "].");
-        // }
-  
+        int status;
+        for (int i = 0, iMax = deviceId; i <= iMax; i++) {
+            struct airspy_device *searchDev = nullptr;
+            status = airspy_open(&searchDev);
+    
+            if (status != AIRSPY_SUCCESS) {
+                continue;
+            }
+    
+            allDevs.push_back(searchDev);
+        }
+
+        int numDevices = allDevs.size();
+
+        if (deviceId < 0 || deviceId >= numDevices) {
+            for (std::vector< struct airspy_device * >::iterator i = allDevs.begin(); i != allDevs.end(); i++) {
+                airspy_close(*i);
+            }
+
+            throw std::runtime_error("Airspy device_id out of range [0 .. " + std::to_string(numDevices) + "].");
+        }
+
+        dev = allDevs[deviceId];
+   
+        for (std::vector< struct airspy_device * >::iterator i = allDevs.begin(); i != allDevs.end(); i++) {
+            if (*i != dev) {
+                airspy_close(*i);
+            }
+        }
+                          
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Found Airspy device using 'device_id' = %d", deviceId);
     }
     
     if (deviceId == -1) {
         throw std::runtime_error("device_id missing.");
     }
-
-    // RtAudio endac;
-    //
-    // devInfo = endac.getDeviceInfo(deviceId);
 }
 
 SoapyAirspy::~SoapyAirspy(void)
 {
+    airspy_close(dev);
 }
 
 /*******************************************************************
@@ -115,7 +139,6 @@ std::vector<std::string> SoapyAirspy::listAntennas(const int direction, const si
 {
     std::vector<std::string> antennas;
     antennas.push_back("RX");
-    // antennas.push_back("TX");
     return antennas;
 }
 
@@ -127,7 +150,6 @@ void SoapyAirspy::setAntenna(const int direction, const size_t channel, const st
 std::string SoapyAirspy::getAntenna(const int direction, const size_t channel) const
 {
     return "RX";
-    // return "TX";
 }
 
 /*******************************************************************
@@ -162,6 +184,10 @@ bool SoapyAirspy::hasGainMode(const int direction, const size_t channel) const
 void SoapyAirspy::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
     agcMode = automatic;
+    
+    airspy_set_lna_agc(dev, agcMode?1:0);
+    airspy_set_mixer_agc(dev, agcMode?1:0);
+    
     SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting AGC: %s", automatic ? "Automatic" : "Manual");
 }
 
@@ -217,6 +243,7 @@ void SoapyAirspy::setFrequency(
         centerFrequency = (uint32_t) frequency;
         resetBuffer = true;
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", centerFrequency);
+        airspy_set_freq(dev, centerFrequency);
     }
 }
 
@@ -245,7 +272,7 @@ SoapySDR::RangeList SoapyAirspy::getFrequencyRange(
     SoapySDR::RangeList results;
     if (name == "RF")
     {
-        results.push_back(SoapySDR::Range(0, 6000000000));
+        results.push_back(SoapySDR::Range(24000000, 1800000000));
     }
     return results;
 }
@@ -283,14 +310,17 @@ std::vector<double> SoapyAirspy::listSampleRates(const int direction, const size
 {
     std::vector<double> results;
 
-    // RtAudio endac;
-    // RtAudio::DeviceInfo info = endac.getDeviceInfo(deviceId);
+    uint32_t numRates;
+	airspy_get_samplerates(dev, &numRates, 0);
 
-    // std::vector<unsigned int>::iterator srate;
-    //
-    // for (srate = info.sampleRates.begin(); srate != info.sampleRates.end(); srate++) {
-    //     results.push_back(*srate);
-    // }
+	std::vector<uint32_t> samplerates;
+    samplerates.resize(numRates);
+    
+	airspy_get_samplerates(dev, samplerates.data(), numRates);
+
+	for (auto i: samplerates) {
+        results.push_back(i);
+	}
 
     return results;
 }

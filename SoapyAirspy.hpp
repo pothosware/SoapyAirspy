@@ -35,8 +35,11 @@
 #include <cstring>
 #include <algorithm>
 
+#include <libairspy/airspy.h>
+
 #define DEFAULT_BUFFER_LENGTH 2048
 #define DEFAULT_NUM_BUFFERS 6
+#define MAX_DEVICES 32
 
 typedef enum streamFormat
 {
@@ -208,6 +211,7 @@ private:
 
     //device handle
     int deviceId;
+    struct airspy_device *dev;
 
     //cached settings
     uint32_t sampleRate, centerFrequency;
