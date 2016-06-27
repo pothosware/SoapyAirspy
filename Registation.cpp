@@ -34,7 +34,7 @@ static std::vector<SoapySDR::Kwargs> findAirspy(const SoapySDR::Kwargs &args)
     airspy_lib_version_t asVersion;
     airspy_lib_version(&asVersion);
     
-    SoapySDR_setLogLevel(SOAPY_SDR_DEBUG);
+    // SoapySDR_setLogLevel(SOAPY_SDR_DEBUG);
     
     SoapySDR_logf(SOAPY_SDR_DEBUG, "AirSpy Lib v%d.%d rev %d", asVersion.major_version, asVersion.minor_version, asVersion.revision);
 
@@ -111,7 +111,7 @@ static std::vector<SoapySDR::Kwargs> findAirspy(const SoapySDR::Kwargs &args)
         SoapySDR::Kwargs soapyInfo;
 
         soapyInfo["device_id"] = std::to_string(devId);
-        soapyInfo["label"] = boardName + "(" + serialstr.str() + ")";
+        soapyInfo["label"] = boardName + " [" + serialstr.str() + "]";
         soapyInfo["serial"] = serialstr.str();
         devId++;
                 

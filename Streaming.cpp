@@ -32,7 +32,7 @@
 std::vector<std::string> SoapyAirspy::getStreamFormats(const int direction, const size_t channel) const {
     std::vector<std::string> formats;
 
-    formats.push_back("CS8");
+    // formats.push_back("CS8");
     formats.push_back("CS16");
     formats.push_back("CF32");
 
@@ -74,46 +74,45 @@ SoapySDR::ArgInfoList SoapyAirspy::getStreamArgsInfo(const int direction, const 
  * Async thread work
  ******************************************************************/
 
+static int _rx_callback(airspy_transfer *t)
+{
+    //printf("_rx_callback\n");
+    SoapyAirspy *self = (SoapyAirspy *)t->ctx;
+    return self->rx_callback(t);
+}
 
-// static int _rx_callback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames, double streamTime, RtAudioStreamStatus status,
-//         void *ctx)
-// {
-//     //printf("_rx_callback\n");
-//     SoapyAirspy *self = (SoapyAirspy *)ctx;
-//     return self->rx_callback(inputBuffer, nBufferFrames, streamTime, status);
-// }
-//
-// int SoapyAirspy::rx_callback(void *inputBuffer, unsigned int nBufferFrames, double streamTime, RtAudioStreamStatus status)
-// {
-//     std::unique_lock<std::mutex> lock(_buf_mutex);
-//
-//     if (sampleRateChanged.load()) {
-//         return 1;
-//     }
-//
-//     //printf("_rx_callback %d _buf_head=%d, numBuffers=%d\n", len, _buf_head, _buf_tail);
-//
-//     //overflow condition: the caller is not reading fast enough
-//     if (_buf_count == numBuffers)
-//     {
-//         _overflowEvent = true;
-//         return 0;
-//     }
-//
-//     //copy into the buffer queue
-//     auto &buff = _buffs[_buf_tail];
-//     buff.resize(nBufferFrames * elementsPerSample);
-//     std::memcpy(buff.data(), inputBuffer, nBufferFrames * elementsPerSample * sizeof(float));
-//
-//     //increment the tail pointer
-//     _buf_tail = (_buf_tail + 1) % numBuffers;
-//     _buf_count++;
-//
-//     //notify readStream()
-//     _buf_cond.notify_one();
-//
-//     return 0;
-// }
+int SoapyAirspy::rx_callback(airspy_transfer *t)
+{
+    std::unique_lock<std::mutex> lock(_buf_mutex);
+
+    if (sampleRateChanged.load()) {
+        return 1;
+    }
+
+    //printf("_rx_callback %d _buf_head=%d, numBuffers=%d\n", len, _buf_head, _buf_tail);
+    //overflow condition: the caller is not reading fast enough
+    if (_buf_count == numBuffers)
+    {
+        _overflowEvent = true;
+        return 0;
+    }
+
+    int elementsPerSample = 2;
+    
+    //copy into the buffer queue
+    auto &buff = _buffs[_buf_tail];
+    buff.resize(t->sample_count * elementsPerSample);
+    std::memcpy(buff.data(), t->samples, t->sample_count * elementsPerSample * sizeof(float));
+
+    //increment the tail pointer
+    _buf_tail = (_buf_tail + 1) % numBuffers;
+    _buf_count++;
+
+    //notify readStream()
+    _buf_cond.notify_one();
+
+    return 0;
+}
 
 /*******************************************************************
  * Stream API
@@ -126,36 +125,26 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
         const SoapySDR::Kwargs &args)
 {
     //check the channel configuration
-    if (channels.size() > 1 or (channels.size() > 0 and channels.at(0) != 0))
-    {
+    if (channels.size() > 1 or (channels.size() > 0 and channels.at(0) != 0)) {
         throw std::runtime_error("setupStream invalid channel selection");
     }
 
+    asFormat = AIRSPY_SAMPLE_INT16_IQ;
+
     //check the format
-    if (format == "CF32")
-    {
+    if (format == "CF32") {
         SoapySDR_log(SOAPY_SDR_INFO, "Using format CF32.");
-        asFormat = STREAM_FORMAT_FLOAT32;
-    }
-    else if (format == "CS16")
-    {
+        asFormat = AIRSPY_SAMPLE_FLOAT32_IQ;
+    } else if (format == "CS16") {
         SoapySDR_log(SOAPY_SDR_INFO, "Using format CS16.");
-        asFormat = STREAM_FORMAT_INT16;
-    }
-    else if (format == "CS8") {
-        SoapySDR_log(SOAPY_SDR_INFO, "Using format CS8.");
-        asFormat = STREAM_FORMAT_INT8;
-    }
-    else
-    {
+        asFormat = AIRSPY_SAMPLE_INT16_IQ;
+    } else {
         throw std::runtime_error(
                 "setupStream invalid format '" + format
-                        + "' -- Only CS8, CS16 and CF32 are supported by SoapyAirspy module.");
+                        + "' -- Only CS16 and CF32 are supported by SoapyAirspy module.");
     }
 
-    // inputParameters.deviceId = deviceId;
-    // inputParameters.nChannels = 2;
-    // inputParameters.firstChannel = 0;
+    airspy_set_sample_type(dev, AIRSPY_SAMPLE_FLOAT32_IQ);
 
     bufferLength = DEFAULT_BUFFER_LENGTH*2;
     elementsPerSample = 2;
@@ -189,19 +178,14 @@ int SoapyAirspy::activateStream(
         const long long timeNs,
         const size_t numElems)
 {
-    if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
+    if (flags != 0) {
+        return SOAPY_SDR_NOT_SUPPORTED;
+    }
+    
     resetBuffer = true;
     bufferedElems = 0;
 
-    // try {
-        sampleRateChanged.store(false);
-        // dac.openStream(NULL, &inputParameters, RTAUDIO_FLOAT32, sampleRate, &bufferLength, &_rx_callback, (void *) this, &opts);
-        // dac.startStream();
-
-        streamActive = true;
-    // } catch (RtAudioError& e) {
-    //     throw std::runtime_error("Stream init error '" + e.getMessage());
-    // }
+    airspy_start_rx(dev, &_rx_callback, (void *) this);
     
     return 0;
 }
@@ -210,12 +194,7 @@ int SoapyAirspy::deactivateStream(SoapySDR::Stream *stream, const int flags, con
 {
     if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
 
-    // if (dac.isStreamRunning()) {
-    //     dac.stopStream();
-    // }
-    // if (dac.isStreamOpen()) {
-    //     dac.closeStream();
-    // }
+    airspy_stop_rx(dev);
     
     streamActive = false;
     
@@ -230,19 +209,14 @@ int SoapyAirspy::readStream(
         long long &timeNs,
         const long timeoutUs)
 {    
-    // if (!dac.isStreamRunning()) {
-    //     return 0;
-    // }
+    if (!airspy_is_streaming(dev)) {
+        return 0;
+    }
     
     if (sampleRateChanged.load()) {
-        // if (dac.isStreamRunning()) {
-        //     dac.stopStream();
-        // }
-        // if (dac.isStreamOpen()) {
-        //     dac.closeStream();
-        // }
-        // dac.openStream(NULL, &inputParameters, RTAUDIO_FLOAT32, sampleRate, &bufferLength, &_rx_callback, (void *) this, &opts);
-        // dac.startStream();
+        airspy_stop_rx(dev);
+        airspy_set_samplerate(dev, sampleRate);
+        airspy_start_rx(dev, &_rx_callback, (void *) this);
         sampleRateChanged.store(false);
     }
 
@@ -260,17 +234,17 @@ int SoapyAirspy::readStream(
     size_t returnedElems = std::min(bufferedElems, numElems);
 
     //convert into user's buff0
-    if (asFormat == STREAM_FORMAT_FLOAT32)
+    if (asFormat == AIRSPY_SAMPLE_FLOAT32_IQ)
     {
         float *ftarget = (float *) buff0;
         std::complex<float> tmp;
-        for (size_t i = 0; i < returnedElems; i++)
+        for (size_t i = 0; i < returnedElems; i++)  // TODO: memcpy .data()
         {
             ftarget[i * 2] = _currentBuff[i * 2];
             ftarget[i * 2 + 1] = _currentBuff[i * 2 + 1];
         }            
     }
-    else if (asFormat == STREAM_FORMAT_INT16)
+    else if (asFormat == AIRSPY_SAMPLE_INT16_IQ)    // TODO: use actual airspy int samples
     {
         int16_t *itarget = (int16_t *) buff0;
         std::complex<int16_t> tmp;
@@ -278,15 +252,6 @@ int SoapyAirspy::readStream(
         {
             itarget[i * 2] = int16_t(_currentBuff[i * 2] * 32767.0);
             itarget[i * 2 + 1] = int16_t(_currentBuff[i * 2 + 1] * 32767.0);
-        }
-    }
-    else if (asFormat == STREAM_FORMAT_INT8)
-    {
-        int8_t *itarget = (int8_t *) buff0;
-        for (size_t i = 0; i < returnedElems; i++)
-        {
-            itarget[i * 2] = int8_t(_currentBuff[i * 2] * 127.0);
-            itarget[i * 2 + 1] = int8_t(_currentBuff[i * 2 + 1] * 127.0);
         }
     }
     

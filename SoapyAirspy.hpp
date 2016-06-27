@@ -41,11 +41,6 @@
 #define DEFAULT_NUM_BUFFERS 6
 #define MAX_DEVICES 32
 
-typedef enum streamFormat
-{
-    STREAM_FORMAT_FLOAT32, STREAM_FORMAT_INT16, STREAM_FORMAT_INT8
-} streamFormat;
-
 class SoapyAirspy: public SoapySDR::Device
 {
 public:
@@ -220,11 +215,11 @@ private:
     bool agcMode, streamActive;
     std::atomic_bool sampleRateChanged;
     int elementsPerSample;
-    streamFormat asFormat;
+    airspy_sample_type asFormat;
 
 public:
     //async api usage
-    // int rx_callback(void *inputBuffer, unsigned int nBufferFrames, double streamTime, RtAudioStreamStatus status);
+    int rx_callback(airspy_transfer *t);
 
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
