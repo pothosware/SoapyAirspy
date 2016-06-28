@@ -216,7 +216,8 @@ private:
     std::atomic_bool sampleRateChanged;
     int elementsPerSample;
     airspy_sample_type asFormat;
-
+    uint8_t lnaGain, mixerGain, vgaGain;
+    
 public:
     //async api usage
     int rx_callback(airspy_transfer *t);

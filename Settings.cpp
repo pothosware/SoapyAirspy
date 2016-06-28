@@ -43,6 +43,8 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
     
     dev = nullptr;
     
+    lnaGain = mixerGain = vgaGain = 0;
+    
     if (args.count("device_id") != 0)
     {
         try {
@@ -171,7 +173,9 @@ std::vector<std::string> SoapyAirspy::listGains(const int direction, const size_
     //the functions below have a "name" parameter
     std::vector<std::string> results;
 
-    // results.push_back("TUNER");
+    results.push_back("LNA");
+    results.push_back("MIXER");
+    results.push_back("VGA");
 
     return results;
 }
@@ -205,26 +209,48 @@ void SoapyAirspy::setGain(const int direction, const size_t channel, const doubl
 
 void SoapyAirspy::setGain(const int direction, const size_t channel, const std::string &name, const double value)
 {
-    // if (name == "TUNER")
-    // {
-    //     audioGain = value;
-    //     SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting Audio Gain: %f", audioGain);
-    // }
+    if (name == "LNA")
+    {
+        lnaGain = uint8_t(value);
+        airspy_set_lna_gain(dev, lnaGain);
+    }
+    else if (name == "MIXER")
+    {
+        mixerGain = uint8_t(value);
+        airspy_set_mixer_gain(dev, mixerGain);
+    }
+    else if (name == "VGA")
+    {
+        vgaGain = uint8_t(value);
+        airspy_set_vga_gain(dev, vgaGain);
+    }
 }
 
 double SoapyAirspy::getGain(const int direction, const size_t channel, const std::string &name) const
 {
-    // if ((name.length() >= 2) && (name.substr(0, 2) == "TUNER"))
-    // {
-    //     return audioGain;
-    // }
+    if (name == "LNA")
+    {
+        return lnaGain;
+    }
+    else if (name == "MIXER")
+    {
+        return mixerGain;
+    }
+    else if (name == "VGA")
+    {
+        return vgaGain;
+    }
 
     return 0;
 }
 
 SoapySDR::Range SoapyAirspy::getGainRange(const int direction, const size_t channel, const std::string &name) const
 {
-    return SoapySDR::Range(0, 100);
+    if (name == "LNA" || name == "MIXER" || name == "VGA") {
+        return SoapySDR::Range(0, 15);
+    }
+ 
+    return SoapySDR::Range(0, 15);    
 }
 
 /*******************************************************************
