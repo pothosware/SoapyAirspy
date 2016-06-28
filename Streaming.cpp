@@ -142,6 +142,7 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
                         + "' -- Only CS16 and CF32 are supported by SoapyAirspy module.");
     }
 
+    // TODO: use airspy_set_sample_type(dev, asFormat); when INT16 imlemented
     airspy_set_sample_type(dev, AIRSPY_SAMPLE_FLOAT32_IQ);
     sampleRateChanged.store(true);
 
@@ -239,13 +240,7 @@ int SoapyAirspy::readStream(
     //convert into user's buff0
     if (asFormat == AIRSPY_SAMPLE_FLOAT32_IQ)
     {
-        float *ftarget = (float *) buff0;
-        std::complex<float> tmp;
-        for (size_t i = 0; i < returnedElems; i++)  // TODO: memcpy .data()
-        {
-            ftarget[i * 2] = _currentBuff[i * 2];
-            ftarget[i * 2 + 1] = _currentBuff[i * 2 + 1];
-        }            
+        std::memcpy(buff0, _currentBuff, returnedElems * 2 * sizeof(float) );
     }
     else if (asFormat == AIRSPY_SAMPLE_INT16_IQ)    // TODO: use actual airspy int samples
     {
