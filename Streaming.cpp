@@ -97,8 +97,6 @@ int SoapyAirspy::rx_callback(airspy_transfer *t)
         return 0;
     }
 
-    int elementsPerSample = 2;
-    
     //copy into the buffer queue
     auto &buff = _buffs[_buf_tail];
     buff.resize(t->sample_count * elementsPerSample);
@@ -145,6 +143,7 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
     }
 
     airspy_set_sample_type(dev, AIRSPY_SAMPLE_FLOAT32_IQ);
+    sampleRateChanged.store(true);
 
     bufferLength = DEFAULT_BUFFER_LENGTH*2;
     elementsPerSample = 2;
@@ -184,7 +183,11 @@ int SoapyAirspy::activateStream(
     
     resetBuffer = true;
     bufferedElems = 0;
-
+    
+    if (sampleRateChanged.load()) {
+        airspy_set_samplerate(dev, sampleRate);
+        sampleRateChanged.store(false);
+    }
     airspy_start_rx(dev, &_rx_callback, (void *) this);
     
     return 0;
