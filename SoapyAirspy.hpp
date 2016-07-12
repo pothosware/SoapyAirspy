@@ -212,7 +212,7 @@ private:
     uint32_t sampleRate, centerFrequency;
     unsigned int bufferLength;
     size_t numBuffers;
-    bool agcMode, streamActive;
+    bool agcMode, streamActive, rfBias;
     std::atomic_bool sampleRateChanged;
     int elementsPerSample;
     airspy_sample_type asFormat;

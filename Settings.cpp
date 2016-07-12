@@ -34,6 +34,7 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
     numBuffers = DEFAULT_NUM_BUFFERS;
 
     agcMode = false;
+    rfBias = false;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -174,7 +175,7 @@ std::vector<std::string> SoapyAirspy::listGains(const int direction, const size_
     std::vector<std::string> results;
 
     results.push_back("LNA");
-    results.push_back("MIXER");
+    results.push_back("MIX");
     results.push_back("VGA");
 
     return results;
@@ -214,7 +215,7 @@ void SoapyAirspy::setGain(const int direction, const size_t channel, const std::
         lnaGain = uint8_t(value);
         airspy_set_lna_gain(dev, lnaGain);
     }
-    else if (name == "MIXER")
+    else if (name == "MIX")
     {
         mixerGain = uint8_t(value);
         airspy_set_mixer_gain(dev, mixerGain);
@@ -232,7 +233,7 @@ double SoapyAirspy::getGain(const int direction, const size_t channel, const std
     {
         return lnaGain;
     }
-    else if (name == "MIXER")
+    else if (name == "MIX")
     {
         return mixerGain;
     }
@@ -246,7 +247,7 @@ double SoapyAirspy::getGain(const int direction, const size_t channel, const std
 
 SoapySDR::Range SoapyAirspy::getGainRange(const int direction, const size_t channel, const std::string &name) const
 {
-    if (name == "LNA" || name == "MIXER" || name == "VGA") {
+    if (name == "LNA" || name == "MIX" || name == "VGA") {
         return SoapySDR::Range(0, 15);
     }
  
@@ -376,54 +377,33 @@ SoapySDR::ArgInfoList SoapyAirspy::getSettingInfo(void) const
 {
     SoapySDR::ArgInfoList setArgs;
  
-    // // Sample Offset
-    // SoapySDR::ArgInfo sampleOffsetArg;
-    // sampleOffsetArg.key = "sample_offset";
-    // sampleOffsetArg.value = "0";
-    // sampleOffsetArg.name = "Stereo Sample Offset";
-    // sampleOffsetArg.description = "Offset stereo samples for off-by-one audio inputs.";
-    // sampleOffsetArg.type = SoapySDR::ArgInfo::STRING;
-    //
-    // std::vector<std::string> sampleOffsetOpts;
-    // std::vector<std::string> sampleOffsetOptNames;
-    //
-    // sampleOffsetOpts.push_back("-2");
-    // sampleOffsetOptNames.push_back("-2 Samples");
-    // sampleOffsetOpts.push_back("-1");
-    // sampleOffsetOptNames.push_back("-1 Samples");
-    // sampleOffsetOpts.push_back("0");
-    // sampleOffsetOptNames.push_back("0 Samples");
-    // sampleOffsetOpts.push_back("1");
-    // sampleOffsetOptNames.push_back("1 Samples");
-    // sampleOffsetOpts.push_back("2");
-    // sampleOffsetOptNames.push_back("2 Samples");
-    //
-    // sampleOffsetArg.options = sampleOffsetOpts;
-    // sampleOffsetArg.optionNames = sampleOffsetOptNames;
-    //
-    // setArgs.push_back(sampleOffsetArg);
+    // Bias-T
+    SoapySDR::ArgInfo biasOffsetArg;
+    biasOffsetArg.key = "biastee";
+    biasOffsetArg.value = "false";
+    biasOffsetArg.name = "Bias tee";
+    biasOffsetArg.description = "Enable the 4.5v DC Bias tee to power SpyVerter / LNA / etc. via antenna connection.";
+    biasOffsetArg.type = SoapySDR::ArgInfo::BOOL;
+   
+    setArgs.push_back(biasOffsetArg);
  
     return setArgs;
 }
 
 void SoapyAirspy::writeSetting(const std::string &key, const std::string &value)
 {
-    // if (key == "sample_offset") {
-    //     try {
-    //         int sOffset = std::stoi(value);
-    //
-    //         if (sOffset >= -2 && sOffset <= 2) {
-    //             sampleOffset = sOffset;
-    //         }
-    //     } catch (std::invalid_argument e) { }
-    // }
+    if (key == "biastee") {
+        bool enable = (value == "true");
+
+        airspy_set_rf_bias(dev, enable);
+    }
 }
 
 std::string SoapyAirspy::readSetting(const std::string &key) const
 {
-    // if (key == "sample_offset") {
-    //     return std::to_string(sampleOffset);
-    // }
+    if (key == "biastee") {
+        return rfBias?"true":"false";
+    }
     
     // SoapySDR_logf(SOAPY_SDR_WARNING, "Unknown setting '%s'", key.c_str());
     return "";
