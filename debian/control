@@ -1,0 +1,30 @@
+Source: soapyairspy
+Section: hamradio
+Priority: optional
+Maintainer: Charles J. Cliffe <cj@cubicproductions.com>
+Uploaders: Josh Blum <josh@pothosware.com>
+Build-Depends:
+    debhelper (>= 9.0.0),
+    cmake,
+    libsoapysdr-dev,
+    libairspy-dev
+Standards-Version: 3.9.8
+Homepage: https://github.com/pothosware/SoapyAirspy/wiki
+Vcs-Git: https://github.com/pothosware/SoapyAirspy.git
+Vcs-Browser: https://github.com/pothosware/SoapyAirspy
+
+Package: soapysdr0.5-2-module-airspy
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Airspy device support for SoapySDR
+ The Soapy Airspy project provides a SoapySDR hardware support module.
+
+Package: soapysdr-module-airspy
+Architecture: all
+Depends: soapysdr0.5-2-module-airspy, ${misc:Depends}
+Description: Airspy device support for SoapySDR (default version)
+ The Soapy Airspy project provides a SoapySDR hardware support module.
+ .
+ This is an empty dependency package that pulls in the Airspy module
+ for the default version of libsoapysdr.
