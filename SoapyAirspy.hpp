@@ -215,8 +215,7 @@ private:
     size_t numBuffers;
     bool agcMode, streamActive, rfBias;
     std::atomic_bool sampleRateChanged;
-    int elementsPerSample;
-    airspy_sample_type asFormat;
+    int bytesPerSample;
     uint8_t lnaGain, mixerGain, vgaGain;
     
 public:
@@ -226,7 +225,7 @@ public:
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
 
-    std::vector<std::vector<float> > _buffs;
+    std::vector<std::vector<char> > _buffs;
     size_t	_buf_head;
     size_t	_buf_tail;
     std::atomic<size_t>	_buf_count;

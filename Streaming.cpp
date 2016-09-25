@@ -98,8 +98,8 @@ int SoapyAirspy::rx_callback(airspy_transfer *t)
 
     //copy into the buffer queue
     auto &buff = _buffs[_buf_tail];
-    buff.resize(t->sample_count * elementsPerSample);
-    std::memcpy(buff.data(), t->samples, t->sample_count * elementsPerSample * sizeof(float));
+    buff.resize(t->sample_count * bytesPerSample);
+    std::memcpy(buff.data(), t->samples, t->sample_count * bytesPerSample);
 
     //increment the tail pointer
     _buf_tail = (_buf_tail + 1) % numBuffers;
@@ -126,7 +126,7 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
         throw std::runtime_error("setupStream invalid channel selection");
     }
 
-    asFormat = AIRSPY_SAMPLE_INT16_IQ;
+    airspy_sample_type asFormat = AIRSPY_SAMPLE_INT16_IQ;
 
     //check the format
     if (format == SOAPY_SDR_CF32) {
@@ -141,12 +141,11 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
                         + "' -- Only CS16 and CF32 are supported by SoapyAirspy module.");
     }
 
-    // TODO: use airspy_set_sample_type(dev, asFormat); when INT16 imlemented
-    airspy_set_sample_type(dev, AIRSPY_SAMPLE_FLOAT32_IQ);
+    airspy_set_sample_type(dev, asFormat);
     sampleRateChanged.store(true);
 
-    bufferLength = DEFAULT_BUFFER_LENGTH*2;
-    elementsPerSample = 2;
+    bytesPerSample = SoapySDR::formatToSize(format);
+    bufferLength = DEFAULT_BUFFER_LENGTH*bytesPerSample;
 
     //clear async fifo counts
     _buf_tail = 0;
@@ -168,7 +167,7 @@ void SoapyAirspy::closeStream(SoapySDR::Stream *stream)
 
 size_t SoapyAirspy::getStreamMTU(SoapySDR::Stream *stream) const
 {
-    return bufferLength / elementsPerSample;
+    return bufferLength / bytesPerSample;
 }
 
 int SoapyAirspy::activateStream(
@@ -237,24 +236,11 @@ int SoapyAirspy::readStream(
     size_t returnedElems = std::min(bufferedElems, numElems);
 
     //convert into user's buff0
-    if (asFormat == AIRSPY_SAMPLE_FLOAT32_IQ)
-    {
-        std::memcpy(buff0, _currentBuff, returnedElems * 2 * sizeof(float) );
-    }
-    else if (asFormat == AIRSPY_SAMPLE_INT16_IQ)    // TODO: use actual airspy int samples
-    {
-        int16_t *itarget = (int16_t *) buff0;
-        std::complex<int16_t> tmp;
-        for (size_t i = 0; i < returnedElems; i++)
-        {
-            itarget[i * 2] = int16_t(_currentBuff[i * 2] * 32767.0);
-            itarget[i * 2 + 1] = int16_t(_currentBuff[i * 2 + 1] * 32767.0);
-        }
-    }
+    std::memcpy(buff0, _currentBuff, returnedElems * bytesPerSample);
     
     //bump variables for next call into readStream
     bufferedElems -= returnedElems;
-    _currentBuff += returnedElems * elementsPerSample;
+    _currentBuff += returnedElems * bytesPerSample;
 
     //return number of elements written to buff0
     if (bufferedElems != 0) flags |= SOAPY_SDR_MORE_FRAGMENTS;
@@ -320,7 +306,7 @@ int SoapyAirspy::acquireReadBuffer(
     flags = 0;
 
     //return number available
-    return _buffs[handle].size() / elementsPerSample;
+    return _buffs[handle].size() / bytesPerSample;
 }
 
 void SoapyAirspy::releaseReadBuffer(
