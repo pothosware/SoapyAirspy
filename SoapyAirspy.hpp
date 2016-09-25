@@ -34,6 +34,7 @@
 #include <string>
 #include <cstring>
 #include <algorithm>
+#include <atomic>
 
 #include <libairspy/airspy.h>
 
@@ -228,9 +229,9 @@ public:
     std::vector<std::vector<float> > _buffs;
     size_t	_buf_head;
     size_t	_buf_tail;
-    size_t	_buf_count;
+    std::atomic<size_t>	_buf_count;
     float *_currentBuff;
-    bool _overflowEvent;
+    std::atomic<bool> _overflowEvent;
     size_t bufferedElems;
     size_t _currentHandle;
     bool resetBuffer;

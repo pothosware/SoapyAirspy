@@ -84,8 +84,6 @@ static int _rx_callback(airspy_transfer *t)
 
 int SoapyAirspy::rx_callback(airspy_transfer *t)
 {
-    std::unique_lock<std::mutex> lock(_buf_mutex);
-
     if (sampleRateChanged.load()) {
         return 1;
     }
@@ -287,15 +285,12 @@ int SoapyAirspy::acquireReadBuffer(
     long long &timeNs,
     const long timeoutUs)
 {
-    std::unique_lock <std::mutex> lock(_buf_mutex);
-
     //reset is issued by various settings
     //to drain old data out of the queue
     if (resetBuffer)
     {
         //drain all buffers from the fifo
-        _buf_head = (_buf_head + _buf_count) % numBuffers;
-        _buf_count = 0;
+        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
         resetBuffer = false;
         _overflowEvent = false;
     }
@@ -304,16 +299,16 @@ int SoapyAirspy::acquireReadBuffer(
     if (_overflowEvent)
     {
         //drain the old buffers from the fifo
-        _buf_head = (_buf_head + _buf_count) % numBuffers;
-        _buf_count = 0;
+        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
         _overflowEvent = false;
         SoapySDR::log(SOAPY_SDR_SSI, "O");
         return SOAPY_SDR_OVERFLOW;
     }
 
     //wait for a buffer to become available
-    while (_buf_count == 0)
+    if (_buf_count == 0)
     {
+        std::unique_lock <std::mutex> lock(_buf_mutex);
         _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs));
         if (_buf_count == 0) return SOAPY_SDR_TIMEOUT;
     }
@@ -333,6 +328,5 @@ void SoapyAirspy::releaseReadBuffer(
     const size_t handle)
 {
     //TODO this wont handle out of order releases
-    std::unique_lock <std::mutex> lock(_buf_mutex);
     _buf_count--;
 }
