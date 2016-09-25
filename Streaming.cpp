@@ -24,6 +24,7 @@
 
 #include "SoapyAirspy.hpp"
 #include <SoapySDR/Logger.hpp>
+#include <SoapySDR/Formats.hpp>
 #include <algorithm> //min
 #include <climits> //SHRT_MAX
 #include <cstring> // memcpy
@@ -33,15 +34,15 @@ std::vector<std::string> SoapyAirspy::getStreamFormats(const int direction, cons
     std::vector<std::string> formats;
 
     // formats.push_back("CS8");
-    formats.push_back("CS16");
-    formats.push_back("CF32");
+    formats.push_back(SOAPY_SDR_CS16);
+    formats.push_back(SOAPY_SDR_CF32);
 
     return formats;
 }
 
 std::string SoapyAirspy::getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const {
      fullScale = 65536;
-     return "CS16";
+     return SOAPY_SDR_CS16;
 }
 
 SoapySDR::ArgInfoList SoapyAirspy::getStreamArgsInfo(const int direction, const size_t channel) const {
@@ -130,10 +131,10 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
     asFormat = AIRSPY_SAMPLE_INT16_IQ;
 
     //check the format
-    if (format == "CF32") {
+    if (format == SOAPY_SDR_CF32) {
         SoapySDR_log(SOAPY_SDR_INFO, "Using format CF32.");
         asFormat = AIRSPY_SAMPLE_FLOAT32_IQ;
-    } else if (format == "CS16") {
+    } else if (format == SOAPY_SDR_CS16) {
         SoapySDR_log(SOAPY_SDR_INFO, "Using format CS16.");
         asFormat = AIRSPY_SAMPLE_INT16_IQ;
     } else {
