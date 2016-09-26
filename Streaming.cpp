@@ -103,7 +103,13 @@ int SoapyAirspy::rx_callback(airspy_transfer *t)
 
     //increment the tail pointer
     _buf_tail = (_buf_tail + 1) % numBuffers;
-    _buf_count++;
+
+    //increment buffers available under lock
+    //to avoid race in acquireReadBuffer wait
+    {
+        std::lock_guard<std::mutex> lock(_buf_mutex);
+        _buf_count++;
+    }
 
     //notify readStream()
     _buf_cond.notify_one();
@@ -295,7 +301,7 @@ int SoapyAirspy::acquireReadBuffer(
     if (_buf_count == 0)
     {
         std::unique_lock <std::mutex> lock(_buf_mutex);
-        _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs));
+        _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs), [this]{return _buf_count != 0;});
         if (_buf_count == 0) return SOAPY_SDR_TIMEOUT;
     }
 
