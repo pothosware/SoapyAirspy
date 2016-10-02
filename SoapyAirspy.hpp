@@ -229,7 +229,7 @@ public:
     size_t	_buf_head;
     size_t	_buf_tail;
     std::atomic<size_t>	_buf_count;
-    float *_currentBuff;
+    char *_currentBuff;
     std::atomic<bool> _overflowEvent;
     size_t bufferedElems;
     size_t _currentHandle;
