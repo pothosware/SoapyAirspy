@@ -38,8 +38,8 @@
 
 #include <libairspy/airspy.h>
 
-#define DEFAULT_BUFFER_LENGTH 2048
-#define DEFAULT_NUM_BUFFERS 6
+#define DEFAULT_BUFFER_BYTES 262144
+#define DEFAULT_NUM_BUFFERS 8
 #define MAX_DEVICES 32
 
 class SoapyAirspy: public SoapySDR::Device
