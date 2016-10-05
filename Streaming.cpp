@@ -164,8 +164,8 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
 
     //allocate buffers
     _buffs.resize(numBuffers);
-    for (auto &buff : _buffs) buff.reserve(bufferLength);
-    for (auto &buff : _buffs) buff.resize(bufferLength);
+    for (auto &buff : _buffs) buff.reserve(bufferLength*bytesPerSample);
+    for (auto &buff : _buffs) buff.resize(bufferLength*bytesPerSample);
 
     return (SoapySDR::Stream *) this;
 }
@@ -177,7 +177,7 @@ void SoapyAirspy::closeStream(SoapySDR::Stream *stream)
 
 size_t SoapyAirspy::getStreamMTU(SoapySDR::Stream *stream) const
 {
-    return bufferLength / bytesPerSample;
+    return bufferLength;
 }
 
 int SoapyAirspy::activateStream(
