@@ -24,6 +24,7 @@
 
 #include "SoapyAirspy.hpp"
 #include <SoapySDR/Logger.hpp>
+#include <SoapySDR/Formats.hpp>
 #include <algorithm> //min
 #include <climits> //SHRT_MAX
 #include <cstring> // memcpy
@@ -33,15 +34,15 @@ std::vector<std::string> SoapyAirspy::getStreamFormats(const int direction, cons
     std::vector<std::string> formats;
 
     // formats.push_back("CS8");
-    formats.push_back("CS16");
-    formats.push_back("CF32");
+    formats.push_back(SOAPY_SDR_CS16);
+    formats.push_back(SOAPY_SDR_CF32);
 
     return formats;
 }
 
 std::string SoapyAirspy::getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const {
      fullScale = 65536;
-     return "CS16";
+     return SOAPY_SDR_CS16;
 }
 
 SoapySDR::ArgInfoList SoapyAirspy::getStreamArgsInfo(const int direction, const size_t channel) const {
@@ -83,8 +84,6 @@ static int _rx_callback(airspy_transfer *t)
 
 int SoapyAirspy::rx_callback(airspy_transfer *t)
 {
-    std::unique_lock<std::mutex> lock(_buf_mutex);
-
     if (sampleRateChanged.load()) {
         return 1;
     }
@@ -99,12 +98,18 @@ int SoapyAirspy::rx_callback(airspy_transfer *t)
 
     //copy into the buffer queue
     auto &buff = _buffs[_buf_tail];
-    buff.resize(t->sample_count * elementsPerSample);
-    std::memcpy(buff.data(), t->samples, t->sample_count * elementsPerSample * sizeof(float));
+    buff.resize(t->sample_count * bytesPerSample);
+    std::memcpy(buff.data(), t->samples, t->sample_count * bytesPerSample);
 
     //increment the tail pointer
     _buf_tail = (_buf_tail + 1) % numBuffers;
-    _buf_count++;
+
+    //increment buffers available under lock
+    //to avoid race in acquireReadBuffer wait
+    {
+        std::lock_guard<std::mutex> lock(_buf_mutex);
+        _buf_count++;
+    }
 
     //notify readStream()
     _buf_cond.notify_one();
@@ -127,13 +132,13 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
         throw std::runtime_error("setupStream invalid channel selection");
     }
 
-    asFormat = AIRSPY_SAMPLE_INT16_IQ;
+    airspy_sample_type asFormat = AIRSPY_SAMPLE_INT16_IQ;
 
     //check the format
-    if (format == "CF32") {
+    if (format == SOAPY_SDR_CF32) {
         SoapySDR_log(SOAPY_SDR_INFO, "Using format CF32.");
         asFormat = AIRSPY_SAMPLE_FLOAT32_IQ;
-    } else if (format == "CS16") {
+    } else if (format == SOAPY_SDR_CS16) {
         SoapySDR_log(SOAPY_SDR_INFO, "Using format CS16.");
         asFormat = AIRSPY_SAMPLE_INT16_IQ;
     } else {
@@ -142,12 +147,15 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
                         + "' -- Only CS16 and CF32 are supported by SoapyAirspy module.");
     }
 
-    // TODO: use airspy_set_sample_type(dev, asFormat); when INT16 imlemented
-    airspy_set_sample_type(dev, AIRSPY_SAMPLE_FLOAT32_IQ);
+    airspy_set_sample_type(dev, asFormat);
     sampleRateChanged.store(true);
 
-    bufferLength = DEFAULT_BUFFER_LENGTH*2;
-    elementsPerSample = 2;
+    bytesPerSample = SoapySDR::formatToSize(format);
+
+    //We get this many complex samples over the bus.
+    //Its the same for both complex float and int16.
+    //TODO adjust when packing is enabled
+    bufferLength = DEFAULT_BUFFER_BYTES/4;
 
     //clear async fifo counts
     _buf_tail = 0;
@@ -156,8 +164,8 @@ SoapySDR::Stream *SoapyAirspy::setupStream(
 
     //allocate buffers
     _buffs.resize(numBuffers);
-    for (auto &buff : _buffs) buff.reserve(bufferLength);
-    for (auto &buff : _buffs) buff.resize(bufferLength);
+    for (auto &buff : _buffs) buff.reserve(bufferLength*bytesPerSample);
+    for (auto &buff : _buffs) buff.resize(bufferLength*bytesPerSample);
 
     return (SoapySDR::Stream *) this;
 }
@@ -169,7 +177,7 @@ void SoapyAirspy::closeStream(SoapySDR::Stream *stream)
 
 size_t SoapyAirspy::getStreamMTU(SoapySDR::Stream *stream) const
 {
-    return bufferLength / elementsPerSample;
+    return bufferLength;
 }
 
 int SoapyAirspy::activateStream(
@@ -238,24 +246,11 @@ int SoapyAirspy::readStream(
     size_t returnedElems = std::min(bufferedElems, numElems);
 
     //convert into user's buff0
-    if (asFormat == AIRSPY_SAMPLE_FLOAT32_IQ)
-    {
-        std::memcpy(buff0, _currentBuff, returnedElems * 2 * sizeof(float) );
-    }
-    else if (asFormat == AIRSPY_SAMPLE_INT16_IQ)    // TODO: use actual airspy int samples
-    {
-        int16_t *itarget = (int16_t *) buff0;
-        std::complex<int16_t> tmp;
-        for (size_t i = 0; i < returnedElems; i++)
-        {
-            itarget[i * 2] = int16_t(_currentBuff[i * 2] * 32767.0);
-            itarget[i * 2 + 1] = int16_t(_currentBuff[i * 2 + 1] * 32767.0);
-        }
-    }
+    std::memcpy(buff0, _currentBuff, returnedElems * bytesPerSample);
     
     //bump variables for next call into readStream
     bufferedElems -= returnedElems;
-    _currentBuff += returnedElems * elementsPerSample;
+    _currentBuff += returnedElems * bytesPerSample;
 
     //return number of elements written to buff0
     if (bufferedElems != 0) flags |= SOAPY_SDR_MORE_FRAGMENTS;
@@ -286,15 +281,12 @@ int SoapyAirspy::acquireReadBuffer(
     long long &timeNs,
     const long timeoutUs)
 {
-    std::unique_lock <std::mutex> lock(_buf_mutex);
-
     //reset is issued by various settings
     //to drain old data out of the queue
     if (resetBuffer)
     {
         //drain all buffers from the fifo
-        _buf_head = (_buf_head + _buf_count) % numBuffers;
-        _buf_count = 0;
+        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
         resetBuffer = false;
         _overflowEvent = false;
     }
@@ -303,17 +295,17 @@ int SoapyAirspy::acquireReadBuffer(
     if (_overflowEvent)
     {
         //drain the old buffers from the fifo
-        _buf_head = (_buf_head + _buf_count) % numBuffers;
-        _buf_count = 0;
+        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
         _overflowEvent = false;
         SoapySDR::log(SOAPY_SDR_SSI, "O");
         return SOAPY_SDR_OVERFLOW;
     }
 
     //wait for a buffer to become available
-    while (_buf_count == 0)
+    if (_buf_count == 0)
     {
-        _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs));
+        std::unique_lock <std::mutex> lock(_buf_mutex);
+        _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs), [this]{return _buf_count != 0;});
         if (_buf_count == 0) return SOAPY_SDR_TIMEOUT;
     }
 
@@ -324,7 +316,7 @@ int SoapyAirspy::acquireReadBuffer(
     flags = 0;
 
     //return number available
-    return _buffs[handle].size() / elementsPerSample;
+    return _buffs[handle].size() / bytesPerSample;
 }
 
 void SoapyAirspy::releaseReadBuffer(
@@ -332,6 +324,5 @@ void SoapyAirspy::releaseReadBuffer(
     const size_t handle)
 {
     //TODO this wont handle out of order releases
-    std::unique_lock <std::mutex> lock(_buf_mutex);
     _buf_count--;
 }

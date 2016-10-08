@@ -1,3 +1,10 @@
+Release 0.1.1 (pending)
+==========================
+
+- Support native AIRSPY_SAMPLE_INT16_IQ format
+- Use atomics for ring buffer implementation
+- Use Format string constants for stream types
+
 Release 0.1.0 (2016-09-01)
 ==========================
 

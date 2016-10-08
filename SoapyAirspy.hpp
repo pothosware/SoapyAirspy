@@ -34,11 +34,12 @@
 #include <string>
 #include <cstring>
 #include <algorithm>
+#include <atomic>
 
 #include <libairspy/airspy.h>
 
-#define DEFAULT_BUFFER_LENGTH 2048
-#define DEFAULT_NUM_BUFFERS 6
+#define DEFAULT_BUFFER_BYTES 262144
+#define DEFAULT_NUM_BUFFERS 8
 #define MAX_DEVICES 32
 
 class SoapyAirspy: public SoapySDR::Device
@@ -214,8 +215,7 @@ private:
     size_t numBuffers;
     bool agcMode, streamActive, rfBias;
     std::atomic_bool sampleRateChanged;
-    int elementsPerSample;
-    airspy_sample_type asFormat;
+    int bytesPerSample;
     uint8_t lnaGain, mixerGain, vgaGain;
     
 public:
@@ -225,12 +225,12 @@ public:
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
 
-    std::vector<std::vector<float> > _buffs;
+    std::vector<std::vector<char> > _buffs;
     size_t	_buf_head;
     size_t	_buf_tail;
-    size_t	_buf_count;
-    float *_currentBuff;
-    bool _overflowEvent;
+    std::atomic<size_t>	_buf_count;
+    char *_currentBuff;
+    std::atomic<bool> _overflowEvent;
     size_t bufferedElems;
     size_t _currentHandle;
     bool resetBuffer;
