@@ -221,6 +221,9 @@ private:
 public:
     //async api usage
     int rx_callback(airspy_transfer *t);
+    std::atomic<bool> _rx_streaming;
+    std::atomic<void *> _rx_buffer;
+    std::atomic<size_t> _rx_numbytes;
 
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
