@@ -1,4 +1,4 @@
-Release 0.1.1 (pending)
+Release 0.1.1 (2017-04-29)
 ==========================
 
 - Support native AIRSPY_SAMPLE_INT16_IQ format

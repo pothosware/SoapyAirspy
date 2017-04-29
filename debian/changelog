@@ -1,3 +1,9 @@
+soapyairspy (0.1.1-1) unstable; urgency=low
+
+  * Release 0.1.1 (2017-04-29)
+
+ -- Josh Blum <josh@pothosware.com>  Sat, 29 Apr 2017 15:02:58 -0000
+
 soapyairspy (0.1.0) unstable; urgency=low
 
   * Release 0.1.1 (2016-09-01)
