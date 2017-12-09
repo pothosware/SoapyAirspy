@@ -386,16 +386,17 @@ SoapySDR::ArgInfoList SoapyAirspy::getSettingInfo(void) const
     biasOffsetArg.description = "Enable the 4.5v DC Bias tee to power SpyVerter / LNA / etc. via antenna connection.";
     biasOffsetArg.type = SoapySDR::ArgInfo::BOOL;
 
-    // bitpack
-    SoapySDR::ArgInfo bitpackOffsetArg;
-    bitpackOffsetArg.key = "bitpack";
-    bitpackOffsetArg.value = "false";
-    bitpackOffsetArg.name = "Bit Pack";
-    bitpackOffsetArg.description = "Enable packing 4 12-bit samples into 3 16-bit words for 25% less USB trafic.";
-    bitpackOffsetArg.type = SoapySDR::ArgInfo::BOOL;
-
     setArgs.push_back(biasOffsetArg);
-    setArgs.push_back(bitpackOffsetArg);
+	
+    // bitpack
+    SoapySDR::ArgInfo bitPackingArg;
+    bitPackingArg.key = "bitpack";
+    bitPackingArg.value = "false";
+    bitPackingArg.name = "Bit Pack";
+    bitPackingArg.description = "Enable packing 4 12-bit samples into 3 16-bit words for 25% less USB trafic.";
+    bitPackingArg.type = SoapySDR::ArgInfo::BOOL;
+
+    setArgs.push_back(bitPackingArg);
  
     return setArgs;
 }
