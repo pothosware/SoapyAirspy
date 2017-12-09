@@ -35,6 +35,7 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
 
     agcMode = false;
     rfBias = false;
+    bitPack = false;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -384,8 +385,17 @@ SoapySDR::ArgInfoList SoapyAirspy::getSettingInfo(void) const
     biasOffsetArg.name = "Bias tee";
     biasOffsetArg.description = "Enable the 4.5v DC Bias tee to power SpyVerter / LNA / etc. via antenna connection.";
     biasOffsetArg.type = SoapySDR::ArgInfo::BOOL;
-   
+
+    // bitpack
+    SoapySDR::ArgInfo bitpackOffsetArg;
+    bitpackOffsetArg.key = "bitpack";
+    bitpackOffsetArg.value = "false";
+    bitpackOffsetArg.name = "Bit Pack";
+    bitpackOffsetArg.description = "Enable packing 4 12-bit samples into 3 16-bit words for 25% less USB trafic.";
+    bitpackOffsetArg.type = SoapySDR::ArgInfo::BOOL;
+
     setArgs.push_back(biasOffsetArg);
+    setArgs.push_back(bitpackOffsetArg);
  
     return setArgs;
 }
@@ -397,12 +407,22 @@ void SoapyAirspy::writeSetting(const std::string &key, const std::string &value)
 
         airspy_set_rf_bias(dev, enable);
     }
+	
+     if (key == "bitpack") {
+        bool enable = (value == "true");
+
+        airspy_set_packing(dev, enable);
+    }
+
 }
 
 std::string SoapyAirspy::readSetting(const std::string &key) const
 {
     if (key == "biastee") {
         return rfBias?"true":"false";
+    }
+    if (key == "bitpack") {
+        return bitPack?"true":"false";
     }
     
     // SoapySDR_logf(SOAPY_SDR_WARNING, "Unknown setting '%s'", key.c_str());
