@@ -213,7 +213,7 @@ private:
     uint32_t sampleRate, centerFrequency;
     unsigned int bufferLength;
     size_t numBuffers;
-    bool agcMode, streamActive, rfBias;
+    bool agcMode, streamActive, rfBias, bitPack;
     std::atomic_bool sampleRateChanged;
     int bytesPerSample;
     uint8_t lnaGain, mixerGain, vgaGain;
