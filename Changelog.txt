@@ -1,3 +1,8 @@
+Release 0.1.2 (pending)
+==========================
+
+- Added optional stream bitpacking with "bitpack" setting
+
 Release 0.1.1 (2017-04-29)
 ==========================
 
