@@ -45,7 +45,7 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
     
     dev = nullptr;
     
-    lnaGain = mixerGain = vgaGain = 0;
+    lnaGain = mixerGain = vgaGain = linearityGain = sensitivityGain = 0;
     
     if (args.count("device_id") != 0)
     {
@@ -178,6 +178,8 @@ std::vector<std::string> SoapyAirspy::listGains(const int direction, const size_
     results.push_back("LNA");
     results.push_back("MIX");
     results.push_back("VGA");
+    results.push_back("LINEARITY"); 
+    results.push_back("SENSITIVITY"); 
 
     return results;
 }
@@ -226,6 +228,16 @@ void SoapyAirspy::setGain(const int direction, const size_t channel, const std::
         vgaGain = uint8_t(value);
         airspy_set_vga_gain(dev, vgaGain);
     }
+    else if (name == "LINEARITY")
+    {
+        linearityGain = uint8_t(value);
+        airspy_set_linearity_gain(dev, linearityGain);
+    }
+    else if (name == "SENSITIVITY")
+    {
+        sensitivityGain = uint8_t(value);
+        airspy_set_sensitivity_gain(dev, sensitivityGain);
+    }
 }
 
 double SoapyAirspy::getGain(const int direction, const size_t channel, const std::string &name) const
@@ -242,6 +254,14 @@ double SoapyAirspy::getGain(const int direction, const size_t channel, const std
     {
         return vgaGain;
     }
+    else if (name == "LINEARITY")
+    {
+        return linearityGain;
+    }
+    else if (name == "SENSITIVITY")
+    {
+        return sensitivityGain;
+    }
 
     return 0;
 }
@@ -250,6 +270,9 @@ SoapySDR::Range SoapyAirspy::getGainRange(const int direction, const size_t chan
 {
     if (name == "LNA" || name == "MIX" || name == "VGA") {
         return SoapySDR::Range(0, 15);
+    }
+    if (name == "LINEARITY" || name == "SENSITIVITY") {
+        return SoapySDR::Range(0, 21);
     }
  
     return SoapySDR::Range(0, 15);    
