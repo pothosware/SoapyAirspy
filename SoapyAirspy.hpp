@@ -216,7 +216,7 @@ private:
     bool agcMode, streamActive, rfBias, bitPack;
     std::atomic_bool sampleRateChanged;
     int bytesPerSample;
-    uint8_t lnaGain, mixerGain, vgaGain;
+    uint8_t lnaGain, mixerGain, vgaGain, linearityGain, sensitivityGain;
     
 public:
     //async api usage
