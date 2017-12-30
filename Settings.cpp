@@ -93,6 +93,13 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
     if (deviceId == -1) {
         throw std::runtime_error("device_id missing.");
     }
+
+    //apply arguments to settings when they match
+    for (const auto &info : this->getSettingInfo())
+    {
+        const auto it = args.find(info.key);
+        if (it != args.end()) this->writeSetting(it->first, it->second);
+    }
 }
 
 SoapyAirspy::~SoapyAirspy(void)
