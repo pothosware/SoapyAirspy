@@ -1,6 +1,7 @@
 Release 0.1.2 (pending)
 ==========================
 
+- Fixed fullScale value for getNativeStreamFormat() call
 - Apply optional arguments to settings on setting key match
 - Added optional stream bitpacking with "bitpack" setting
 
