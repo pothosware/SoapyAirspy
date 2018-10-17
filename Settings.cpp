@@ -1,6 +1,6 @@
 /*
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015 Charles J. Cliffe
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -39,14 +39,14 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
 
     bufferedElems = 0;
     resetBuffer = false;
-    
+
     streamActive = false;
     sampleRateChanged.store(false);
-    
+
     dev = nullptr;
-    
+
     lnaGain = mixerGain = vgaGain = 0;
-    
+
     if (args.count("device_id") != 0)
     {
         try {
@@ -54,18 +54,18 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
         } catch (const std::invalid_argument &) {
             throw std::runtime_error("device_id invalid.");
         }
-        
+
         std::vector<struct airspy_device *> allDevs;
-        
+
         int status;
         for (int i = 0, iMax = deviceId; i <= iMax; i++) {
             struct airspy_device *searchDev = nullptr;
             status = airspy_open(&searchDev);
-    
+
             if (status != AIRSPY_SUCCESS) {
                 continue;
             }
-    
+
             allDevs.push_back(searchDev);
         }
 
@@ -80,16 +80,16 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
         }
 
         dev = allDevs[deviceId];
-   
+
         for (std::vector< struct airspy_device * >::iterator i = allDevs.begin(); i != allDevs.end(); i++) {
             if (*i != dev) {
                 airspy_close(*i);
             }
         }
-                          
+
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Found Airspy device using 'device_id' = %d", deviceId);
     }
-    
+
     if (deviceId == -1) {
         throw std::runtime_error("device_id missing.");
     }
@@ -197,10 +197,10 @@ bool SoapyAirspy::hasGainMode(const int direction, const size_t channel) const
 void SoapyAirspy::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
     agcMode = automatic;
-    
+
     airspy_set_lna_agc(dev, agcMode?1:0);
     airspy_set_mixer_agc(dev, agcMode?1:0);
-    
+
     SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting AGC: %s", automatic ? "Automatic" : "Manual");
 }
 
@@ -258,8 +258,8 @@ SoapySDR::Range SoapyAirspy::getGainRange(const int direction, const size_t chan
     if (name == "LNA" || name == "MIX" || name == "VGA") {
         return SoapySDR::Range(0, 15);
     }
- 
-    return SoapySDR::Range(0, 15);    
+
+    return SoapySDR::Range(0, 15);
 }
 
 /*******************************************************************
@@ -350,7 +350,7 @@ std::vector<double> SoapyAirspy::listSampleRates(const int direction, const size
 
 	std::vector<uint32_t> samplerates;
     samplerates.resize(numRates);
-    
+
 	airspy_get_samplerates(dev, samplerates.data(), numRates);
 
 	for (auto i: samplerates) {
@@ -384,7 +384,7 @@ std::vector<double> SoapyAirspy::listBandwidths(const int direction, const size_
 SoapySDR::ArgInfoList SoapyAirspy::getSettingInfo(void) const
 {
     SoapySDR::ArgInfoList setArgs;
- 
+
     // Bias-T
     SoapySDR::ArgInfo biasOffsetArg;
     biasOffsetArg.key = "biastee";
@@ -394,7 +394,7 @@ SoapySDR::ArgInfoList SoapyAirspy::getSettingInfo(void) const
     biasOffsetArg.type = SoapySDR::ArgInfo::BOOL;
 
     setArgs.push_back(biasOffsetArg);
-	
+
     // bitpack
     SoapySDR::ArgInfo bitPackingArg;
     bitPackingArg.key = "bitpack";
@@ -404,7 +404,7 @@ SoapySDR::ArgInfoList SoapyAirspy::getSettingInfo(void) const
     bitPackingArg.type = SoapySDR::ArgInfo::BOOL;
 
     setArgs.push_back(bitPackingArg);
- 
+
     return setArgs;
 }
 
@@ -412,12 +412,14 @@ void SoapyAirspy::writeSetting(const std::string &key, const std::string &value)
 {
     if (key == "biastee") {
         bool enable = (value == "true");
+        rfBias = enable;
 
         airspy_set_rf_bias(dev, enable);
     }
-	
+
      if (key == "bitpack") {
         bool enable = (value == "true");
+        bitPack = enable;
 
         airspy_set_packing(dev, enable);
     }
@@ -432,7 +434,7 @@ std::string SoapyAirspy::readSetting(const std::string &key) const
     if (key == "bitpack") {
         return bitPack?"true":"false";
     }
-    
+
     // SoapySDR_logf(SOAPY_SDR_WARNING, "Unknown setting '%s'", key.c_str());
     return "";
 }
