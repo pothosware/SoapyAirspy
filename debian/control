@@ -13,7 +13,7 @@ Homepage: https://github.com/pothosware/SoapyAirspy/wiki
 Vcs-Git: https://github.com/pothosware/SoapyAirspy.git
 Vcs-Browser: https://github.com/pothosware/SoapyAirspy
 
-Package: soapysdr0.6-module-airspy
+Package: soapysdr0.7-module-airspy
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -22,7 +22,7 @@ Description: Airspy device support for SoapySDR
 
 Package: soapysdr-module-airspy
 Architecture: all
-Depends: soapysdr0.6-module-airspy, ${misc:Depends}
+Depends: soapysdr0.7-module-airspy, ${misc:Depends}
 Description: Airspy device support for SoapySDR (default version)
  The Soapy Airspy project provides a SoapySDR hardware support module.
  .
