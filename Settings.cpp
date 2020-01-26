@@ -26,8 +26,6 @@
 
 SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
 {
-    deviceId = -1;
-
     sampleRate = 3000000;
     centerFrequency = 0;
 
@@ -47,51 +45,30 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
 
     lnaGain = mixerGain = vgaGain = 0;
 
-    if (args.count("device_id") != 0)
+    dev = nullptr;
+    std::stringstream serialstr;
+    serialstr.str("");
+
+    if (args.count("serial") != 0)
     {
         try {
-            deviceId = std::stoi(args.at("device_id"));
+            serial = std::stoull(args.at("serial"), nullptr, 16);
         } catch (const std::invalid_argument &) {
-            throw std::runtime_error("device_id invalid.");
+            throw std::runtime_error("serial is not a hex number");
+        } catch (const std::out_of_range &) {
+            throw std::runtime_error("serial value of out range");
         }
-
-        std::vector<struct airspy_device *> allDevs;
-
-        int status;
-        for (int i = 0, iMax = deviceId; i <= iMax; i++) {
-            struct airspy_device *searchDev = nullptr;
-            status = airspy_open(&searchDev);
-
-            if (status != AIRSPY_SUCCESS) {
-                continue;
-            }
-
-            allDevs.push_back(searchDev);
+        serialstr << std::hex << serial;
+        if (airspy_open_sn(&dev, serial) != AIRSPY_SUCCESS) {
+            throw std::runtime_error("Unable to open AirSpy device with serial " + serialstr.str());
         }
-
-        int numDevices = allDevs.size();
-
-        if (deviceId < 0 || deviceId >= numDevices) {
-            for (std::vector< struct airspy_device * >::iterator i = allDevs.begin(); i != allDevs.end(); i++) {
-                airspy_close(*i);
-            }
-
-            throw std::runtime_error("Airspy device_id out of range [0 .. " + std::to_string(numDevices) + "].");
-        }
-
-        dev = allDevs[deviceId];
-
-        for (std::vector< struct airspy_device * >::iterator i = allDevs.begin(); i != allDevs.end(); i++) {
-            if (*i != dev) {
-                airspy_close(*i);
-            }
-        }
-
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Found Airspy device using 'device_id' = %d", deviceId);
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Found AirSpy device: serial = %16Lx", serial);
     }
-
-    if (deviceId == -1) {
-        throw std::runtime_error("device_id missing.");
+    else
+    {
+        if (airspy_open(&dev) != AIRSPY_SUCCESS) {
+            throw std::runtime_error("Unable to open AirSpy device");
+        }
     }
 
     //apply arguments to settings when they match
@@ -127,8 +104,10 @@ SoapySDR::Kwargs SoapyAirspy::getHardwareInfo(void) const
     //this also gets printed in --probe
     SoapySDR::Kwargs args;
 
-    args["origin"] = "https://github.com/pothosware/SoapyAirspy";
-    args["device_id"] = std::to_string(deviceId);
+    std::stringstream serialstr;
+    serialstr.str("");
+    serialstr << std::hex << serial;
+    args["serial"] = serialstr.str();
 
     return args;
 }

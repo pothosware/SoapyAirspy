@@ -206,7 +206,7 @@ public:
 private:
 
     //device handle
-    int deviceId;
+    uint64_t serial;
     struct airspy_device *dev;
 
     //cached settings
