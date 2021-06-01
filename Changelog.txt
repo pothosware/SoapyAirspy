@@ -1,3 +1,8 @@
+Release 0.2.0 (pending)
+==========================
+
+- Support opening the device by serial convention
+
 Release 0.1.2 (2018-12-07)
 ==========================
 
