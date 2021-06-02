@@ -8,7 +8,7 @@ Build-Depends:
     cmake,
     libsoapysdr-dev,
     libairspy-dev
-Standards-Version: 4.1.4
+Standards-Version: 4.5.0
 Homepage: https://github.com/pothosware/SoapyAirspy/wiki
 Vcs-Git: https://github.com/pothosware/SoapyAirspy.git
 Vcs-Browser: https://github.com/pothosware/SoapyAirspy
