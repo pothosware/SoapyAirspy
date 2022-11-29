@@ -128,16 +128,6 @@ jobs:
                     # MSVC
                     #
 
-                    - cmake_config: -G "Visual Studio 14 2015" -A "Win32"
-                      arch: win32
-                      os: windows-2019
-                      msvc: true
-
-                    - cmake_config: -G "Visual Studio 14 2015" -A "x64"
-                      arch: x64
-                      os: windows-2019
-                      msvc: true
-
                     - cmake_config: -G "Visual Studio 16 2019" -A "Win32"
                       arch: win32
                       os: windows-2019
