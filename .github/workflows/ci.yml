@@ -220,7 +220,7 @@ jobs:
                   echo "----------------------------------"
                   mkdir build
                   cd build
-                  cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{github.workspace}}
+                  cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{github.workspace}}
                   make
 
                   echo
