@@ -3,7 +3,7 @@
 ###################################################
 cmake_minimum_required(VERSION 3.3.0)
 project(SoapyAirspy CXX)
-set(CMAKE_CXX_STANRDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 
 find_package(SoapySDR "0.4.0" NO_MODULE REQUIRED)
 if (NOT SoapySDR_FOUND)
@@ -12,10 +12,6 @@ endif ()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-
-if(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wc++11-extensions")
-endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
