@@ -192,7 +192,7 @@ jobs:
             run: |
                 # libusb
                 cd ${{github.workspace}}\libusb\msvc
-                msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}}
+                msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
                 cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib "$Env:INSTALL_PREFIX"\lib
                 cp -v ..\libusb\*.h "$Env:INSTALL_PREFIX"\include
 
