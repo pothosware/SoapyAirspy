@@ -152,9 +152,9 @@ jobs:
                     # MinGW
                     #
 
-                    - cmake_config: -G "MinGW Makefiles"
-                      os: windows-2019
-                      msvc: false
+                    #- cmake_config: -G "MinGW Makefiles"
+                    #  os: windows-2019
+                    #  msvc: false
 
                     # TODO: reenable when Github updates GCC past 11.2.0
                     #- cmake_config: -G "MinGW Makefiles"
@@ -170,7 +170,7 @@ jobs:
                 ${{matrix.config.msvc == true}}
             with:
                 arch: ${{matrix.arch}}
-          - name: Install dependencies
+          - name: Install common dependencies
             run: |
                 # SoapySDR
                 git clone https://github.com/pothosware/SoapySDR -b soapy-sdr-0.8.1
@@ -180,7 +180,20 @@ jobs:
                 cmake --build . --config ${{matrix.build_type}}
                 cmake --install . --config ${{matrix.build_type}}
 
-                # TODO: libusb, airspy
+                cd ${{github.workspace}}
+                git clone https://github.com/libusb/libusb -b v1.0.26
+                git clone https://github.com/airspy/airspyone_host -b v1.0.10
+          - name: Install MSVC dependencies
+            if:
+                ${{matrix.config.msvc == true}}
+            run: |
+                # libusb
+                cd ${{github.workspace}}\libusb\msvc
+                msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}}
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib "$Env:INSTALL_PREFIX"\lib
+                cp -v ..\libusb\*.h "$Env:INSTALL_PREFIX"\include
+
+                # Airspy
           - name: Build SoapyAirSpy
             run: |
                 $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
