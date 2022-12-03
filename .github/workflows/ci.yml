@@ -170,6 +170,9 @@ jobs:
                 ${{matrix.config.msvc == true}}
             with:
                 arch: ${{matrix.arch}}
+          - uses: microsoft/setup-msbuild@v1.1
+            if:
+                ${{matrix.config.msvc == true}}
           - name: Install common dependencies
             run: |
                 # SoapySDR
