@@ -193,8 +193,12 @@ jobs:
                 # libusb
                 cd ${{github.workspace}}\libusb\msvc
                 msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib "$Env:INSTALL_PREFIX"\lib
-                cp -v ..\libusb\*.h "$Env:INSTALL_PREFIX"\include
+
+                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR
+
+                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
+                cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
 
                 # Airspy
           - name: Build SoapyAirSpy
