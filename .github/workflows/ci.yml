@@ -200,9 +200,6 @@ jobs:
 
                 cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
-          - name: Install MinGW dependencies
-            if:
-                ${{matrix.config.msvc == false}}
           - name: Install common dependencies
             run: |
                 $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
