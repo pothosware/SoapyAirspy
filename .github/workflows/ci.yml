@@ -225,6 +225,10 @@ jobs:
                 cp -v pthreads\Pre-built.2\dll\${{matrix.config.pthread_arch}}\* $Env:INSTALL_BINDIR
                 cp -v pthreads\Pre-built.2\lib\${{matrix.config.pthread_arch}}\* $Env:INSTALL_LIBDIR
 
+                # See: https://github.com/coapp-packages/pthreads/issues/1
+                Add-Content -Path $(Join-Path $Env:INSTALL_INCDIR "pthread.h") -Value "#define _TIMESPEC_DEFINED"
+                Add-Content -Path $(Join-Path $Env:INSTALL_INCDIR "pthread.h") -Value $(Get-Content -Path pthreads\Pre-built.2\include\pthread.h)
+
                 cd ${{github.workspace}}
                 git clone https://github.com/airspy/airspyone_host -b v1.0.10 --recursive
                 mkdir airspyone_host\libairspy\build
