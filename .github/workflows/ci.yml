@@ -130,21 +130,25 @@ jobs:
 
                     - cmake_config: -G "Visual Studio 16 2019" -A "Win32"
                       arch: win32
+                      pthread_arch: x86
                       os: windows-2019
                       msvc: true
 
                     - cmake_config: -G "Visual Studio 16 2019" -A "x64"
                       arch: x64
+                      pthread_arch: x64
                       os: windows-2019
                       msvc: true
 
                     - cmake_config: -G "Visual Studio 17 2022" -A "Win32"
                       arch: win32
+                      pthread_arch: x64
                       os: windows-2022
                       msvc: true
 
                     - cmake_config: -G "Visual Studio 17 2022" -A "x64"
                       arch: x64
+                      pthread_arch: x64
                       os: windows-2022
                       msvc: true
 
@@ -173,9 +177,30 @@ jobs:
           - uses: microsoft/setup-msbuild@v1.1
             if:
                 ${{matrix.config.msvc == true}}
+          - name: Install MSVC dependencies
+            if:
+                ${{matrix.config.msvc == true}}
+            run: |
+                # libusb
+                git clone https://github.com/libusb/libusb -b v1.0.26
+                cd libusb\msvc
+                msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
+
+                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
+                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
+
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR
+                cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
           - name: Install common dependencies
             run: |
+                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
+                $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
+                $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
+                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
+                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
+
                 # SoapySDR
+                cd ${{runner.workspace}}
                 git clone https://github.com/pothosware/SoapySDR -b soapy-sdr-0.8.1
                 mkdir SoapySDR\build
                 cd SoapySDR\build
@@ -183,37 +208,34 @@ jobs:
                 cmake --build . --config ${{matrix.build_type}}
                 cmake --install . --config ${{matrix.build_type}}
 
+                # pthreads-win32
+                cd ${{runner.workspace}}
+                Invoke-WebRequest -Uri http://mirrors.kernel.org/sourceware/pthreads-win32/pthreads-w32-2-9-1-release.zip -Outfile pthreads.zip
+                Expand-Archive pthreads.zip pthreads
+                cp -v pthreads\Pre-built.2\include\* $Env:INSTALL_INCDIR
+                cp -v pthreads\Pre-built.2\dll\${{matrix.config.pthread_arch}}\* $Env:INSTALL_BINDIR
+                cp -v pthreads\Pre-built.2\lib\${{matrix.config.pthread_arch}}\* $Env:INSTALL_LIBDIR
+
                 cd ${{github.workspace}}
-                git clone https://github.com/libusb/libusb -b v1.0.26
-                git clone https://github.com/airspy/airspyone_host -b v1.0.10
-          - name: Install MSVC dependencies
-            if:
-                ${{matrix.config.msvc == true}}
-            run: |
-                # libusb
-                cd ${{github.workspace}}\libusb\msvc
-                msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
-
-                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR
-
-                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
-                cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
-
-                # Airspy
+                git clone https://github.com/airspy/airspyone_host -b v1.0.10 --recursive
+                mkdir airspyone_host\libairspy\build
+                cd airspyone_host\libairspy\build
+                cmake ${{matrix.config.cmake_config}} -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
+                cmake --build . --config ${{matrix.build_type}}
+                cmake --install . --config ${{matrix.build_type}}
           - name: Build SoapyAirSpy
             run: |
                 $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
                 $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
                 mkdir build
                 cd build
-                #cmake ${{matrix.config.cmake_config}} -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
-                #cmake --build . --config ${{matrix.build_type}}
-                #cmake --install . --config ${{matrix.build_type}}
+                cmake ${{matrix.config.cmake_config}} -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
+                cmake --build . --config ${{matrix.build_type}}
+                cmake --install . --config ${{matrix.build_type}}
           - name: Test module registration
             run: |
                 $Env:PATH += ";$Env:INSTALL_PREFIX\bin"
-                #SoapySDRUtil --check=airspy
+                SoapySDRUtil --check=airspy
     freebsd-ci:
         name: FreeBSD
         runs-on: macos-12
