@@ -192,9 +192,9 @@ jobs:
                 git clone https://github.com/libusb/libusb -b v1.0.26
                 cd libusb\msvc
                 msbuild libusb_dll_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.bin $Env:INSTALL_LIBDIR\usb-1.0.bin
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.dll $Env:INSTALL_BINDIR\usb-1.0.dll
 
                 # pthreads-win32
                 cd ${{runner.workspace}}
