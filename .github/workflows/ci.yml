@@ -198,7 +198,7 @@ jobs:
                 $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
                 $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
 
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
           - name: Install common dependencies
             run: |
@@ -231,8 +231,8 @@ jobs:
 
                 cd ${{github.workspace}}
                 git clone https://github.com/airspy/airspyone_host -b v1.0.10 --recursive
-                mkdir airspyone_host\libairspy\build
-                cd airspyone_host\libairspy\build
+                mkdir airspyone_host\build
+                cd airspyone_host\build
                 cmake ${{matrix.config.cmake_config}} -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
                 cmake --build . --config ${{matrix.build_type}}
                 cmake --install . --config ${{matrix.build_type}}
