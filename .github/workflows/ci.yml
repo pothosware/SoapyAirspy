@@ -142,7 +142,7 @@ jobs:
 
                     - cmake_config: -G "Visual Studio 17 2022" -A "Win32"
                       arch: win32
-                      pthread_arch: x64
+                      pthread_arch: x86
                       os: windows-2022
                       msvc: true
 
@@ -156,9 +156,10 @@ jobs:
                     # MinGW
                     #
 
-                    #- cmake_config: -G "MinGW Makefiles"
-                    #  os: windows-2019
-                    #  msvc: false
+                    - cmake_config: -G "MinGW Makefiles"
+                      pthread_arch: x64
+                      os: windows-2019
+                      msvc: false
 
                     # TODO: reenable when Github updates GCC past 11.2.0
                     #- cmake_config: -G "MinGW Makefiles"
@@ -170,52 +171,30 @@ jobs:
         steps:
           - uses: actions/checkout@v2
           - uses: ilammy/msvc-dev-cmd@v1
-            if:
-                ${{matrix.config.msvc == true}}
             with:
                 arch: ${{matrix.arch}}
           - uses: microsoft/setup-msbuild@v1.1
-            if:
-                ${{matrix.config.msvc == true}}
           - name: Set up install directory
+            run: |
+          - name: Install dependencies
             run: |
                 $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
                 $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
                 $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
+                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
+                $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
 
                 mkdir -p $Env:INSTALL_BINDIR
                 mkdir -p $Env:INSTALL_INCDIR
                 mkdir -p $Env:INSTALL_LIBDIR
-          - name: Install MSVC dependencies
-            if:
-                ${{matrix.config.msvc == true}}
-            run: |
-                # libusb
+
+                # libusb (C, so MSVC should be fine for this purpose)
                 git clone https://github.com/libusb/libusb -b v1.0.26
                 cd libusb\msvc
-                msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
-
-                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
-                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
-
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
+                msbuild libusb_dll_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.bin $Env:INSTALL_LIBDIR\usb-1.0.bin
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
-          - name: Install common dependencies
-            run: |
-                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
-                $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
-                $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
-                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
-                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
-
-                # SoapySDR
-                cd ${{runner.workspace}}
-                git clone https://github.com/pothosware/SoapySDR -b soapy-sdr-0.8.1
-                mkdir SoapySDR\build
-                cd SoapySDR\build
-                cmake ${{matrix.config.cmake_config}} -DENABLE_PYTHON=OFF -DENABLE_PYTHON3=OFF -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
-                cmake --build . --config ${{matrix.build_type}}
-                cmake --install . --config ${{matrix.build_type}}
 
                 # pthreads-win32
                 cd ${{runner.workspace}}
@@ -229,11 +208,21 @@ jobs:
                 Set-Content -Path $(Join-Path $Env:INSTALL_INCDIR "pthread.h") -Value "#define _TIMESPEC_DEFINED"
                 Add-Content -Path $(Join-Path $Env:INSTALL_INCDIR "pthread.h") -Value $(Get-Content -Path pthreads\Pre-built.2\include\pthread.h)
 
+                # libairspy
                 cd ${{github.workspace}}
                 git clone https://github.com/airspy/airspyone_host -b v1.0.10 --recursive
                 mkdir airspyone_host\build
                 cd airspyone_host\build
                 cmake ${{matrix.config.cmake_config}} -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
+                cmake --build . --config ${{matrix.build_type}}
+                cmake --install . --config ${{matrix.build_type}}
+
+                # SoapySDR
+                cd ${{runner.workspace}}
+                git clone https://github.com/pothosware/SoapySDR -b soapy-sdr-0.8.1
+                mkdir SoapySDR\build
+                cd SoapySDR\build
+                cmake ${{matrix.config.cmake_config}} -DENABLE_PYTHON=OFF -DENABLE_PYTHON3=OFF -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
                 cmake --build . --config ${{matrix.build_type}}
                 cmake --install . --config ${{matrix.build_type}}
           - name: Build SoapyAirSpy
