@@ -222,7 +222,7 @@ jobs:
                 Invoke-WebRequest -Uri http://mirrors.kernel.org/sourceware/pthreads-win32/pthreads-w32-2-9-1-release.zip -Outfile pthreads.zip
                 Expand-Archive pthreads.zip pthreads
                 cp -v pthreads\Pre-built.2\include\* $Env:INSTALL_INCDIR
-                cp -v pthreads\Pre-built.2\dll\${{matrix.config.pthread_arch}}\* $Env:INSTALL_BINDIR
+                cp -v pthreads\Pre-built.2\dll\${{matrix.config.pthread_arch}}\s* $Env:INSTALL_BINDIR # Skip pthread.h
                 cp -v pthreads\Pre-built.2\lib\${{matrix.config.pthread_arch}}\* $Env:INSTALL_LIBDIR
 
                 # See: https://github.com/coapp-packages/pthreads/issues/1
