@@ -177,6 +177,15 @@ jobs:
           - uses: microsoft/setup-msbuild@v1.1
             if:
                 ${{matrix.config.msvc == true}}
+          - name: Set up install directory
+            run: |
+                $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
+                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
+                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
+
+                mkdir -p $Env:INSTALL_BINDIR
+                mkdir -p $Env:INSTALL_INCDIR
+                mkdir -p $Env:INSTALL_LIBDIR
           - name: Install MSVC dependencies
             if:
                 ${{matrix.config.msvc == true}}
@@ -191,6 +200,9 @@ jobs:
 
                 cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
+          - name: Install MinGW dependencies
+            if:
+                ${{matrix.config.msvc == false}}
           - name: Install common dependencies
             run: |
                 $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
