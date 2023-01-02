@@ -157,6 +157,7 @@ jobs:
                     #
 
                     - cmake_config: -G "MinGW Makefiles"
+                      arch: x64
                       pthread_arch: x64
                       os: windows-2019
                       msvc: false
@@ -191,10 +192,9 @@ jobs:
                 # libusb (C, so MSVC should be fine for this purpose)
                 git clone https://github.com/libusb/libusb -b v1.0.26
                 cd libusb\msvc
-                msbuild libusb_dll_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
+                msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\dll\libusb-1.0.dll $Env:INSTALL_BINDIR\usb-1.0.dll
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
 
                 # pthreads-win32
                 cd ${{runner.workspace}}
