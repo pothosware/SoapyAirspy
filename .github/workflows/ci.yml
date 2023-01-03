@@ -207,7 +207,7 @@ jobs:
                 ${{matrix.config.msvc == false}}
             run: |
                 #libusb
-                pacman -S mingw-w64-x86_64-libusb
+                C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm mingw-w64-x86_64-libusb"
           - name: Install dependencies
             run: |
                 $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
