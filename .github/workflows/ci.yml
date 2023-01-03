@@ -156,11 +156,10 @@ jobs:
                     # MinGW
                     #
 
-                    #- cmake_config: -G "MinGW Makefiles"
-                    #  arch: x64
-                    #  pthread_arch: x64
-                    #  os: windows-2019
-                    #  msvc: false
+                    - cmake_config: -G "MinGW Makefiles"
+                      pthread_arch: x64
+                      os: windows-2019
+                      msvc: false
 
                     # TODO: reenable when Github updates GCC past 11.2.0
                     #- cmake_config: -G "MinGW Makefiles"
