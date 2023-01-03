@@ -160,12 +160,12 @@ jobs:
                     # MinGW
                     #
 
-                    - cmake_config: -G "MinGW Makefiles"
-                      arch: x64
-                      pthread_arch: x64
-                      os: windows-2019
-                      msvc: false
-                      dest_libusb: "libusb-1.0.dll.a"
+                    #- cmake_config: -G "MinGW Makefiles"
+                    #  arch: x64
+                    #  pthread_arch: x64
+                    #  os: windows-2019
+                    #  msvc: false
+                    #  dest_libusb: "libusb-1.0.dll.a"
 
                     # TODO: reenable when Github updates GCC past 11.2.0
                     #- cmake_config: -G "MinGW Makefiles"
