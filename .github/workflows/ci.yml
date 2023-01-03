@@ -133,24 +133,28 @@ jobs:
                       pthread_arch: x86
                       os: windows-2019
                       msvc: true
+                      dest_libusb: "usb-1.0.lib"
 
                     - cmake_config: -G "Visual Studio 16 2019" -A "x64"
                       arch: x64
                       pthread_arch: x64
                       os: windows-2019
                       msvc: true
+                      dest_libusb: "usb-1.0.lib"
 
                     - cmake_config: -G "Visual Studio 17 2022" -A "Win32"
                       arch: win32
                       pthread_arch: x86
                       os: windows-2022
                       msvc: true
+                      dest_libusb: "usb-1.0.lib"
 
                     - cmake_config: -G "Visual Studio 17 2022" -A "x64"
                       arch: x64
                       pthread_arch: x64
                       os: windows-2022
                       msvc: true
+                      dest_libusb: "usb-1.0.lib"
 
                     #
                     # MinGW
@@ -161,6 +165,7 @@ jobs:
                       pthread_arch: x64
                       os: windows-2019
                       msvc: false
+                      dest_libusb: "libusb-1.0.dll.a"
 
                     # TODO: reenable when Github updates GCC past 11.2.0
                     #- cmake_config: -G "MinGW Makefiles"
@@ -192,7 +197,7 @@ jobs:
                 cd libusb\msvc
                 msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR\${{matrix.config.dest_libusb}}
 
                 # pthreads-win32
                 cd ${{runner.workspace}}
