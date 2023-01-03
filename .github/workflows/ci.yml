@@ -133,28 +133,24 @@ jobs:
                       pthread_arch: x86
                       os: windows-2019
                       msvc: true
-                      dest_libusb: "usb-1.0.lib"
 
                     - cmake_config: -G "Visual Studio 16 2019" -A "x64"
                       arch: x64
                       pthread_arch: x64
                       os: windows-2019
                       msvc: true
-                      dest_libusb: "usb-1.0.lib"
 
                     - cmake_config: -G "Visual Studio 17 2022" -A "Win32"
                       arch: win32
                       pthread_arch: x86
                       os: windows-2022
                       msvc: true
-                      dest_libusb: "usb-1.0.lib"
 
                     - cmake_config: -G "Visual Studio 17 2022" -A "x64"
                       arch: x64
                       pthread_arch: x64
                       os: windows-2022
                       msvc: true
-                      dest_libusb: "usb-1.0.lib"
 
                     #
                     # MinGW
@@ -165,7 +161,6 @@ jobs:
                     #  pthread_arch: x64
                     #  os: windows-2019
                     #  msvc: false
-                    #  dest_libusb: "libusb-1.0.dll.a"
 
                     # TODO: reenable when Github updates GCC past 11.2.0
                     #- cmake_config: -G "MinGW Makefiles"
@@ -179,8 +174,12 @@ jobs:
           - uses: ilammy/msvc-dev-cmd@v1
             with:
                 arch: ${{matrix.arch}}
+            if:
+                ${{matrix.config.msvc == true}}
           - uses: microsoft/setup-msbuild@v1.1
-          - name: Install dependencies
+            if:
+                ${{matrix.config.msvc == true}}
+          - name: Set up install directory
             run: |
                 $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
                 $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
@@ -191,13 +190,39 @@ jobs:
                 mkdir -p $Env:INSTALL_BINDIR
                 mkdir -p $Env:INSTALL_INCDIR
                 mkdir -p $Env:INSTALL_LIBDIR
+          - name: Install MSVC dependencies
+            if:
+                ${{matrix.config.msvc == true}}
+            run: |
+                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
+                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
 
-                # libusb (C, so MSVC should be fine for this purpose)
+                # libusb
                 git clone https://github.com/libusb/libusb -b v1.0.26
                 cd libusb\msvc
                 msbuild libusb_static_2019.vcxproj /p:configuration=${{matrix.build_type}} /p:platform=${{matrix.config.arch}}
                 cp -v ..\libusb\*.h $Env:INSTALL_INCDIR
-                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR\${{matrix.config.dest_libusb}}
+                cp -v ..\${{matrix.config.arch}}\${{matrix.build_type}}\lib\libusb-1.0.lib $Env:INSTALL_LIBDIR\usb-1.0.lib
+          - name: Install MinGW dependencies
+            if:
+                ${{matrix.config.msvc == false}}
+            run: |
+                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
+                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
+
+                # libusb
+                git clone https://github.com/libusb/libusb -b v1.0.26
+                cd libusb
+                ./autogen.sh
+                ./configure --prefix $Env:INSTALL_PREFIX
+                make install
+          - name: Install dependencies
+            run: |
+                $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
+                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
+                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
+                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
+                $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
 
                 # pthreads-win32
                 cd ${{runner.workspace}}
