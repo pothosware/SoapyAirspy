@@ -309,7 +309,7 @@ void SoapyAirspy::setSampleRate(const int direction, const size_t channel, const
     SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting sample rate: %d", sampleRate);
 
     if (sampleRate != rate) {
-        sampleRate = rate;
+        sampleRate = uint32_t(rate);
         resetBuffer = true;
         sampleRateChanged.store(true);
     }

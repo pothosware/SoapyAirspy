@@ -175,8 +175,6 @@ jobs:
             with:
                 arch: ${{matrix.arch}}
           - uses: microsoft/setup-msbuild@v1.1
-          - name: Set up install directory
-            run: |
           - name: Install dependencies
             run: |
                 $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
@@ -225,7 +223,7 @@ jobs:
                 cmake ${{matrix.config.cmake_config}} -DENABLE_PYTHON=OFF -DENABLE_PYTHON3=OFF -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
                 cmake --build . --config ${{matrix.build_type}}
                 cmake --install . --config ${{matrix.build_type}}
-          - name: Build SoapyAirSpy
+          - name: Build SoapyAirspy
             run: |
                 $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
                 $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
