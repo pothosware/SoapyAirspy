@@ -213,6 +213,7 @@ jobs:
                 git clone https://github.com/libusb/libusb -b v1.0.26
                 cd libusb
                 ./autogen.sh
+                ls
                 ./configure --prefix $Env:INSTALL_PREFIX
                 make install
           - name: Install dependencies
