@@ -206,23 +206,15 @@ jobs:
             if:
                 ${{matrix.config.msvc == false}}
             run: |
-                $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
-                $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
-
-                # libusb
-                git clone https://github.com/libusb/libusb -b v1.0.26
-                cd libusb
-                ./bootstrap.sh
-                ls
-                ./configure --prefix $Env:INSTALL_PREFIX
-                make install
+                #libusb
+                pacman -S mingw-w64-x86_64-libusb
           - name: Install dependencies
             run: |
                 $Env:INSTALL_BINDIR = Join-Path $Env:INSTALL_PREFIX "bin"
                 $Env:INSTALL_INCDIR = Join-Path $Env:INSTALL_PREFIX "include"
                 $Env:INSTALL_LIBDIR = Join-Path $Env:INSTALL_PREFIX "lib"
-                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
-                $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
+                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include;C:\msys64\mingw64\usr\include"
+                $Env:LIB += ";$Env:INSTALL_PREFIX\lib;C:\msys64\mingw64\usr\lib"
 
                 # pthreads-win32
                 cd ${{runner.workspace}}
@@ -257,8 +249,8 @@ jobs:
                 cmake --install . --config ${{matrix.build_type}}
           - name: Build SoapyAirspy
             run: |
-                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include"
-                $Env:LIB += ";$Env:INSTALL_PREFIX\lib"
+                $Env:INCLUDE += ";$Env:INSTALL_PREFIX\include;C:\msys64\mingw64\usr\include"
+                $Env:LIB += ";$Env:INSTALL_PREFIX\lib;C:\msys64\mingw64\usr\lib"
                 mkdir build
                 cd build
                 cmake ${{matrix.config.cmake_config}} -DCMAKE_INSTALL_PREFIX="$Env:INSTALL_PREFIX" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
@@ -266,7 +258,7 @@ jobs:
                 cmake --install . --config ${{matrix.build_type}}
           - name: Test module registration
             run: |
-                $Env:PATH += ";$Env:INSTALL_PREFIX\bin"
+                $Env:PATH += ";$Env:INSTALL_PREFIX\bin;C:\msys64\mingw64\usr\lib"
                 SoapySDRUtil --check=airspy
     freebsd-ci:
         name: FreeBSD
