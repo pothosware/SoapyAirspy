@@ -23,6 +23,7 @@
  */
 
 #include "SoapyAirspy.hpp"
+#include <cinttypes>
 
 SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
 {
@@ -62,7 +63,7 @@ SoapyAirspy::SoapyAirspy(const SoapySDR::Kwargs &args)
         if (airspy_open_sn(&dev, serial) != AIRSPY_SUCCESS) {
             throw std::runtime_error("Unable to open AirSpy device with serial " + serialstr.str());
         }
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Found AirSpy device: serial = %16Lx", serial);
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Found AirSpy device: serial = %" PRIx64, serial);
     }
     else
     {
