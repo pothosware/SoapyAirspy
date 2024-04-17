@@ -5,21 +5,38 @@ on:
   workflow_dispatch:
 
 jobs:
-  macos_build_job:
+  macos_macports_build_job:
     strategy:
       fail-fast: false
       matrix:
         os: [macos-12, macos-14]
     runs-on: ${{ matrix.os }}
-    name: Build on ${{ matrix.os }}
+    name: Build on ${{ matrix.os }} (macports)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: melusina-org/setup-macports@v1
+      - name: Install ports
+        run: port install SoapySDR airspy
+      - name: Configure
+        run: cmake -B build
+      - name: Build
+        run: cmake --build build
+
+  macos_homebrew_build_job:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-14]
+    runs-on: ${{ matrix.os }}
+    name: Build on ${{ matrix.os }} (homebrew)
     steps:
       - uses: actions/checkout@v4
       - name: Setup tools
         run: brew install soapysdr airspy
+      - name: Configure
+        run: cmake -B build
       - name: Build
-        run: |
-          cmake -B build
-          cmake --build build
+        run: cmake --build build
 
   linux_build_job:
     strategy:
@@ -35,7 +52,7 @@ jobs:
           sudo apt-get update -q -y
           sudo apt-get install -y --no-install-recommends cmake ninja-build
           sudo apt-get install -q -y libsoapysdr-dev libairspy-dev
+      - name: Configure
+        run: cmake -GNinja -B build
       - name: Build
-        run: |
-          cmake -GNinja -B build
-          cmake --build build
+        run: cmake --build build
